@@ -41,6 +41,7 @@ class TwitterUser(models.Model):
             settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET,
             access_token
         )
+    api = property(get_twitter_api)
     # }}} 
 
     # update_twitter_info # {{{ 
@@ -71,4 +72,8 @@ class TwitterUser(models.Model):
             ).hexdigest()[:8]
         )
 
+    def is_following(self, other_user):
+        return other_user in [
+            str(tu.screen_name) for tu in self.api.GetFriends()
+        ]
 # }}} 
