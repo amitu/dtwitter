@@ -1,88 +1,41 @@
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from importd import d
 from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.core.urlresolvers import get_mod_func
 
-import oauthtwitter, oauth
+from twython import Twython
 
-from dtwitter.models import TwitterUser
-from dtwitter.signals import user_logged_out, user_logged_in
-from dtwitter.signals import new_twitter_user
+@d("/dtwitter/")
+def idx(request):
+    return d.HttpResponse("<a href='/dtwitter/connect/'>start</a>")
 
-# connect # {{{ 
+@d("/dtwitter/connect/")
 def connect(request):
-    twitter = oauthtwitter.OAuthApi(
-        settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET
+    twitter = Twython(settings.TWITTER_KEY, settings.TWITTER_SECRET)
+    auth = twitter.get_authentication_tokens(
+        callback_url="http://%s/dtwitter/callback" % settings.DOMAIN
     )
-    request_token = twitter.getRequestToken()
-    request.session["request_token"] = request_token.to_string()
-    twitter_url = "https://twitter.com/oauth/authorize?oauth_token=%s" % (
-        request_token.key
-    )
-    return render_to_response(
-        "dtwitter/redirect.html", { 'twitter_url': twitter_url },
-        context_instance=RequestContext(request)
-    )
-# }}} 
+    request.session["OAUTH_TOKEN"] = auth['oauth_token']
+    request.session["OAUTH_TOKEN_SECRET"] = auth['oauth_token_secret']
+    return d.HttpResponseRedirect(auth["auth_url"])
 
-# callback # {{{ 
+@d("/dtwitter/callback/")
 def callback(request):
-    request_token = oauth.OAuthToken.from_string(
-        request.session["request_token"] 
+    twitter = Twython(
+        settings.TWITTER_KEY, settings.TWITTER_SECRET,
+        request.session["OAUTH_TOKEN"], request.session["OAUTH_TOKEN_SECRET"]
     )
-    twitter = oauthtwitter.OAuthApi(
-        settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET,
-        request_token
+    oauth_verifier = request.GET['oauth_verifier']
+
+    final_step = twitter.get_authorized_tokens(oauth_verifier)
+
+    OAUTH_TOKEN = final_step['oauth_token']
+    OAUTH_TOKEN_SECERT = final_step['oauth_token_secret']
+    TWITTER_USERNAME = final_step["screen_name"]
+    TWITTER_USERID = final_step["user_id"]
+
+    cb_module, cb_method = get_mod_func(settings.TWITTER_CALLBACK)
+    cb = getattr(__import__(cb_module, {}, {}, ['']), cb_method)
+
+    return cb(
+        OAUTH_TOKEN, OAUTH_TOKEN_SECERT, TWITTER_USERNAME, TWITTER_USERID
     )
-    access_token = twitter.getAccessToken()
-
-    twitter = oauthtwitter.OAuthApi(
-        settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET,
-        access_token
-    )
-
-    user_info = twitter.GetUserInfo()
-    assert user_info.screen_name # make sure auth worked
-
-    twitter_user, created = TwitterUser.objects.get_or_create_from_info(
-        user_info, access_token.to_string()
-    )
-
-    if created:
-        new_twitter_user.send(sender=request, twitter_user=twitter_user)
-
-    del request.session["request_token"]
-
-    request.session["twitter_user_id"] = twitter_user.pk
-
-    user_logged_in.send(sender=request, twitter_user=twitter_user)
-
-    return render_to_response(
-        "dtwitter/configuration-done.html", { 'twitter_user': twitter_user },
-        context_instance=RequestContext(request)
-    )
-# }}} 
-
-# logout # {{{ 
-def logout(request, template='', next=None):
-    if hasattr(request, "twitter_user"):
-        twitter_user = request.twitter_user
-        del request.twitter_user
-    if "twitter_user_id" in request.session:
-        del request.session["twitter_user_id"]
-
-    # send signal
-    user_logged_out.send(sender=request, twitter_user=twitter_user)
-
-    if next: return HttpResponseRedirect("next")
-    if "redirect_to" in request.REQUEST:
-        return HttpResponseRedirect(request.REQUEST["redirect_to"])
-    if "come_back" in request.REQUEST:
-        return HttpResponseRedirect(request.META["HTTP_REFERER"])
-    return render_to_response(
-        [template, "dtwitter/logout.html"], 
-        context_instance=RequestContext(request)
-    )
-# }}} 
-
-

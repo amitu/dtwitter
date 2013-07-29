@@ -17,7 +17,7 @@ setup(
     url = 'https://github.com/amitu/dtwitter/',
     license = 'BSD',
 
-    install_requires = ["tweepy"],
+    install_requires = ["twython"],
     packages = find_packages(),
 
     zip_safe = True
