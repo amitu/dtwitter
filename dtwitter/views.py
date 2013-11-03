@@ -4,11 +4,11 @@ from django.core.urlresolvers import get_mod_func
 
 from twython import Twython
 
-@d("/dtwitter/")
+@d("/")
 def idx(request):
     return d.HttpResponse("<a href='/dtwitter/connect/'>start</a>")
 
-@d("/dtwitter/connect/")
+@d("/connect/")
 def connect(request):
     twitter = Twython(settings.TWITTER_KEY, settings.TWITTER_SECRET)
     auth = twitter.get_authentication_tokens(
@@ -18,7 +18,7 @@ def connect(request):
     request.session["OAUTH_TOKEN_SECRET"] = auth['oauth_token_secret']
     return d.HttpResponseRedirect(auth["auth_url"])
 
-@d("/dtwitter/callback/")
+@d("/callback/")
 def callback(request):
     twitter = Twython(
         settings.TWITTER_KEY, settings.TWITTER_SECRET,
@@ -37,5 +37,6 @@ def callback(request):
     cb = getattr(__import__(cb_module, {}, {}, ['']), cb_method)
 
     return cb(
-        OAUTH_TOKEN, OAUTH_TOKEN_SECERT, TWITTER_USERNAME, TWITTER_USERID
+        request, OAUTH_TOKEN, OAUTH_TOKEN_SECERT, TWITTER_USERNAME,
+        TWITTER_USERID
     )

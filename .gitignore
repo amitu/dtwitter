@@ -5,3 +5,5 @@
 db.sqlite
 local_settings.py
 dtwitter.egg-info
+build
+dist
