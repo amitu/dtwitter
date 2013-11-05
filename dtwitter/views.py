@@ -1,24 +1,26 @@
 from importd import d
 from django.conf import settings
-from django.core.urlresolvers import get_mod_func
+from django.core.urlresolvers import get_mod_func, reverse
 
 from twython import Twython
 
-@d("/")
+@d("/", name="dtwitter-index")
 def idx(request):
     return d.HttpResponse("<a href='/dtwitter/connect/'>start</a>")
 
-@d("/connect/")
+@d("/connect/", name="dtwitter-connect")
 def connect(request):
     twitter = Twython(settings.TWITTER_KEY, settings.TWITTER_SECRET)
     auth = twitter.get_authentication_tokens(
-        callback_url="http://%s/dtwitter/callback" % settings.DOMAIN
+        callback_url="http://%s%s" % (
+            settings.DOMAIN, reverse("dtwitter-callback")
+        )
     )
     request.session["OAUTH_TOKEN"] = auth['oauth_token']
     request.session["OAUTH_TOKEN_SECRET"] = auth['oauth_token_secret']
     return d.HttpResponseRedirect(auth["auth_url"])
 
-@d("/callback/")
+@d("/callback/", name="dtwitter-callback")
 def callback(request):
     twitter = Twython(
         settings.TWITTER_KEY, settings.TWITTER_SECRET,
