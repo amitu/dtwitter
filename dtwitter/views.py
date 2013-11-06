@@ -6,7 +6,9 @@ from twython import Twython
 
 @d("/", name="dtwitter-index")
 def idx(request):
-    return d.HttpResponse("<a href='/dtwitter/connect/'>start</a>")
+    return d.HttpResponse(
+        "<a href='%s'>start</a>" % reverse("dtwitter-connect")
+    )
 
 @d("/connect/", name="dtwitter-connect")
 def connect(request):
