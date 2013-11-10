@@ -24,6 +24,9 @@ def connect(request):
 
 @d("/callback/", name="dtwitter-callback")
 def callback(request):
+    if "denied" in request.GET:
+        return d.HttpResponseRedirect("/denied=true")
+
     twitter = Twython(
         settings.TWITTER_KEY, settings.TWITTER_SECRET,
         request.session["OAUTH_TOKEN"], request.session["OAUTH_TOKEN_SECRET"]
