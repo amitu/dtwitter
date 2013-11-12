@@ -20,7 +20,8 @@ def connect(request):
     )
     request.session["OAUTH_TOKEN"] = auth['oauth_token']
     request.session["OAUTH_TOKEN_SECRET"] = auth['oauth_token_secret']
-    request.session["next"] = request.REQUEST["next"]
+    if "next" in request.REQUEST:
+        request.session["next"] = request.REQUEST["next"]
     return d.HttpResponseRedirect(auth["auth_url"])
 
 @d("/callback/", name="dtwitter-callback")
