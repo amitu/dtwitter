@@ -42,16 +42,20 @@ def callback(request):
     final_step = twitter.get_authorized_tokens(oauth_verifier)
 
     OAUTH_TOKEN = final_step['oauth_token']
-    OAUTH_TOKEN_SECERT = final_step['oauth_token_secret']
+    OAUTH_TOKEN_SECRET = final_step['oauth_token_secret']
     TWITTER_USERNAME = final_step["screen_name"]
     TWITTER_USERID = final_step["user_id"]
 
     cb_module, cb_method = get_mod_func(settings.TWITTER_CALLBACK)
     cb = getattr(__import__(cb_module, {}, {}, ['']), cb_method)
 
+    twitter = Twython(
+        settings.TWITTER_KEY, settings.TWITTER_SECRET,
+        OAUTH_TOKEN, OAUTH_TOKEN_SECRET
+    )
     profile = twitter.show_user(user_id=TWITTER_USERID)
 
     return cb(
-        request, OAUTH_TOKEN, OAUTH_TOKEN_SECERT, TWITTER_USERNAME,
+        request, OAUTH_TOKEN, OAUTH_TOKEN_SECRET, TWITTER_USERNAME,
         TWITTER_USERID, profile=profile
     )
