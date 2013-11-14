@@ -49,7 +49,9 @@ def callback(request):
     cb_module, cb_method = get_mod_func(settings.TWITTER_CALLBACK)
     cb = getattr(__import__(cb_module, {}, {}, ['']), cb_method)
 
+    profile = twitter.show_user(user_id=TWITTER_USERID)
+
     return cb(
         request, OAUTH_TOKEN, OAUTH_TOKEN_SECERT, TWITTER_USERNAME,
-        TWITTER_USERID
+        TWITTER_USERID, profile=profile
     )
