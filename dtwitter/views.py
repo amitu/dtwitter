@@ -12,6 +12,11 @@ def idx(request):
 
 @d("/connect/", name="dtwitter-connect")
 def connect(request):
+    if "next" in request.REQUEST:
+        request.session["next"] = request.REQUEST["next"]
+    if getattr(settings, "DTWITTER_TEMPLATE") and request.method == "GET":
+        return settings.DTWITTER_TEMPLATE
+
     twitter = Twython(settings.TWITTER_KEY, settings.TWITTER_SECRET)
     auth = twitter.get_authentication_tokens(
         callback_url="http://%s%s" % (
@@ -20,10 +25,7 @@ def connect(request):
     )
     request.session["OAUTH_TOKEN"] = auth['oauth_token']
     request.session["OAUTH_TOKEN_SECRET"] = auth['oauth_token_secret']
-    if "next" in request.REQUEST:
-        request.session["next"] = request.REQUEST["next"]
-    if getattr(settings, "DTWITTER_TEMPLATE") and request.method == "GET":
-        return settings.DTWITTER_TEMPLATE
+
     return d.HttpResponseRedirect(auth["auth_url"])
 
 @d("/callback/", name="dtwitter-callback")
