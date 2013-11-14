@@ -14,7 +14,7 @@ def idx(request):
 def connect(request):
     if "next" in request.REQUEST:
         request.session["next"] = request.REQUEST["next"]
-    if getattr(settings, "DTWITTER_TEMPLATE") and request.method == "GET":
+    if getattr(settings, "DTWITTER_TEMPLATE", "") and request.method == "GET":
         return settings.DTWITTER_TEMPLATE
 
     twitter = Twython(settings.TWITTER_KEY, settings.TWITTER_SECRET)
